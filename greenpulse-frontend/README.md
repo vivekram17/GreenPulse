@@ -1,42 +1,85 @@
-# GreenPulse AI — frontend
+# GreenPulse Frontend
 
-A React + Vite frontend for the GreenPulse AI Spring Boot backend
-(`greenpulse-ai`), matching the endpoints documented in that project's
-README:
+React + Vite frontend for the GreenPulse waste-complaint Spring Boot API.
 
-| Method | Path | Used by |
-|---|---|---|
-| POST | `/api/complaints` | Report form |
-| GET | `/api/complaints` | Community issues list |
-| GET | `/api/complaints/{id}` | (available in `complaintApi.js`, not wired to a route yet) |
-| PATCH | `/api/complaints/{id}/status` | Status dropdown on each card |
-| GET | `/api/insights/trends` | Insights panel |
-| POST | `/api/policy/ask` | Policy Q&A panel |
-
-## Run it
+## Setup
 
 ```bash
 npm install
 npm run dev
 ```
 
-Opens on `http://localhost:5173`. Point it at a different backend host by
-editing `API_ROOT` in `src/services/apiConfig.js`.
+The app runs at `http://localhost:5173` and expects the backend at
+`http://localhost:8080`.
 
-## Backend CORS
+## Backend requirements
 
-The backend needs to allow the Vite dev origin. Add this to the Spring Boot
-project if it isn't there already:
+Your Spring Boot controller must expose:
+
+```
+POST   /api/complaints
+GET    /api/complaints
+GET    /api/complaints/{id}
+PATCH  /api/complaints/{id}/status
+```
+
+## Assumed JSON shapes
+
+Request (`POST /api/complaints`):
+```json
+{
+  "title": "Overflowing waste bin",
+  "description": "The bin near Block A has been overflowing for two days.",
+  "location": "Block A"
+}
+```
+
+Response:
+```json
+{
+  "id": 1,
+  "title": "Overflowing waste bin",
+  "description": "The bin near Block A has been overflowing for two days.",
+  "location": "Block A",
+  "status": "SUBMITTED"
+}
+```
+
+Status update (`PATCH /api/complaints/{id}/status`):
+```json
+{
+  "status": "IN_PROGRESS"
+}
+```
+
+**If your DTOs use different field names** (e.g. `subject` instead of
+`title`), update `src/components/ComplaintForm.jsx`,
+`src/components/ComplaintCard.jsx`, and `src/services/complaintApi.js`
+accordingly.
+
+## CORS
+
+Add this to your Spring Boot project so it accepts requests from the
+Vite dev server:
 
 ```java
+package com.greenpulse.api.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
 @Configuration
 public class CorsConfig {
+
     @Bean
     public WebMvcConfigurer corsConfigurer() {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/**")
+                registry
+                    .addMapping("/**")
                     .allowedOrigins("http://localhost:5173")
                     .allowedMethods("GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS")
                     .allowedHeaders("*");
@@ -46,30 +89,4 @@ public class CorsConfig {
 }
 ```
 
-## A note on field names
-
-No `ComplaintResponse` / `ComplaintSubmitRequest` / `StatusUpdateRequest` /
-`TrendSummary` / `PolicyAnswer` Java source was available when this was
-built — only the backend README and its curl examples. The frontend was
-built against what that README documents directly:
-
-- **Submit** (`POST /api/complaints`): `{ description, locationHint }` —
-  taken verbatim from the README's example.
-- **Status** (`PATCH /api/complaints/{id}/status`): `{ status }`, one of
-  `NEW`, `ROUTED`, `IN_PROGRESS`, `RESOLVED` — the enum values the README
-  lists.
-- **Complaint fields shown in the UI** (`category`, `urgency`, `department`,
-  `aiReasoning`): the README names these explicitly as what the AI
-  classification step assigns.
-- **Trends** (`GET /api/insights/trends`) and **policy answers**
-  (`POST /api/policy/ask`): the README only describes these in prose
-  ("counts by category/location + a narrative summary"), so the exact
-  response key names are a guess. `src/services/insightsApi.js` and
-  `src/services/policyApi.js` each check a few likely key names
-  (`byCategory`/`countsByCategory`/`categoryCounts`, etc.) and render
-  gracefully if none match.
-
-If any of these don't line up with the real DTOs, the two normalize
-functions in `complaintApi.js`, `insightsApi.js`, and `policyApi.js` are the
-only places that need editing — the components consume the normalized
-shape, not the raw response.
+Restart Spring Boot after adding this.
