@@ -1,6 +1,6 @@
 # GreenPulse Frontend
 
-React + Vite frontend for the GreenPulse waste-complaint Spring Boot API.
+A React + Vite frontend for submitting and tracking waste complaints.
 
 ## Setup
 
@@ -9,84 +9,34 @@ npm install
 npm run dev
 ```
 
-The app runs at `http://localhost:5173` and expects the backend at
-`http://localhost:8080`.
+The app runs at `http://localhost:5173`.
 
-## Backend requirements
-
-Your Spring Boot controller must expose:
+## Project structure
 
 ```
-POST   /api/complaints
-GET    /api/complaints
-GET    /api/complaints/{id}
-PATCH  /api/complaints/{id}/status
+src/
+├── components/
+│   ├── ComplaintForm.jsx   # Form to submit a new complaint
+│   └── ComplaintCard.jsx   # Displays a single complaint and its status
+└── services/
+    └── complaintApi.js     # API calls used by the components
 ```
 
-## Assumed JSON shapes
+## Data the UI works with
 
-Request (`POST /api/complaints`):
-```json
-{
-  "title": "Overflowing waste bin",
-  "description": "The bin near Block A has been overflowing for two days.",
-  "location": "Block A"
-}
-```
+Each complaint in the UI uses these fields:
 
-Response:
-```json
-{
-  "id": 1,
-  "title": "Overflowing waste bin",
-  "description": "The bin near Block A has been overflowing for two days.",
-  "location": "Block A",
-  "status": "SUBMITTED"
-}
-```
+| Field         | Used for                                  |
+|---------------|-------------------------------------------|
+| `title`       | Short heading of the complaint            |
+| `description` | Details of the issue                      |
+| `location`    | Where the issue is (e.g. "Block A")       |
+| `status`      | Current state (e.g. `SUBMITTED`, `IN_PROGRESS`) |
 
-Status update (`PATCH /api/complaints/{id}/status`):
-```json
-{
-  "status": "IN_PROGRESS"
-}
-```
+## Customizing field names
 
-**If your DTOs use different field names** (e.g. `subject` instead of
-`title`), update `src/components/ComplaintForm.jsx`,
-`src/components/ComplaintCard.jsx`, and `src/services/complaintApi.js`
-accordingly.
+If your data uses different field names (e.g. `subject` instead of `title`), update these files:
 
-## CORS
-
-Add this to your Spring Boot project so it accepts requests from the
-Vite dev server:
-
-```java
-package com.greenpulse.api.config;
-
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-
-@Configuration
-public class CorsConfig {
-
-    @Bean
-    public WebMvcConfigurer corsConfigurer() {
-        return new WebMvcConfigurer() {
-            @Override
-            public void addCorsMappings(CorsRegistry registry) {
-                registry
-                    .addMapping("/**")
-                    .allowedOrigins("http://localhost:5173")
-                    .allowedMethods("GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS")
-                    .allowedHeaders("*");
-            }
-        };
-    }
-}
-```
-
-Restart Spring Boot after adding this.
+- `src/components/ComplaintForm.jsx`
+- `src/components/ComplaintCard.jsx`
+- `src/services/complaintApi.js`
