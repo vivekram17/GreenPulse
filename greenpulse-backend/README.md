@@ -1,38 +1,61 @@
-# GreenPulse AI — backend prototype
+# GreenPulse AI — Backend
 
-Working Spring Boot implementation of the system workflow from the project deck:
-citizen complaint → Spring Boot API → MySQL → LLM classification → auto-routed
+Spring Boot backend for a civic complaint workflow:
+citizen complaint → REST API → MySQL → LLM classification → auto-routed
 ticket or trend summary, plus a small RAG-style policy Q&A endpoint.
-
-1M1B AI for Sustainability Virtual Internship (IBM SkillsBuild × AICTE) — SDG 11
-(Sustainable Cities and Communities), with SDG 12 and SDG 6 as secondary goals.
 
 ## Stack
 
 - Java 17, Spring Boot 3.2 (Web, Data JPA, Validation)
 - MySQL
-- OpenAI or Gemini for classification and summarization — **fully optional**. With
-  no API key configured, every AI step falls back to a rule-based equivalent
-  (keyword classification, a plain-count trend summary, best-matching policy
-  snippet) so the whole pipeline runs end-to-end with zero external calls.
+- LLM for classification and summarization — **fully optional**. Supported
+  providers: **Ollama** (local, default; IBM Granite) or OpenAI. If no LLM is
+  reachable, every AI step falls back to a rule-based equivalent (keyword
+  classification, a plain-count trend summary, best-matching policy snippet),
+  so the whole pipeline runs end-to-end with zero external calls.
 
 ## Setup
 
-1. **Database** — create a MySQL instance (local or hosted). The app will
-   create the `greenpulse` schema and tables itself on first run
+1. **Database** — create a MySQL instance (local or hosted). The app creates
+   the `greenpulse` schema and tables on first run
    (`spring.jpa.hibernate.ddl-auto=update`). Update the username/password in
-   `src/main/resources/application.properties` or override them with
+   `src/main/resources/application.properties` or override them with the
    `SPRING_DATASOURCE_USERNAME` / `SPRING_DATASOURCE_PASSWORD` env vars.
 
-2. **(Optional) LLM key** — to use a real model instead of the fallback logic:
+2. **(Optional) Local LLM with Ollama + IBM Granite** — no API key and no
+   data leaves your machine:
 
    ```bash
-   export LLM_API_KEY=sk-...          # your OpenAI or Gemini key
+   # install Ollama from https://ollama.com, then pull the Granite model
+   ollama pull granite4:3b        # use the exact tag shown in `ollama list`
+   ollama serve                   # skip if Ollama is already running
    ```
 
-   and set `llm.provider=openai` or `llm.provider=gemini` in
-   `application.properties` (defaults to `openai`, model `gpt-4o-mini`; Gemini
-   defaults to `gemini-1.5-flash`).
+   Then in `application.properties`:
+
+   ```properties
+   llm.provider=ollama
+   llm.ollama.base-url=http://localhost:11434
+   llm.ollama.model=granite4:3b
+   ```
+
+   Or override with environment variables:
+
+   ```bash
+   export LLM_PROVIDER=ollama
+   export LLM_OLLAMA_MODEL=granite4:3b
+   ```
+
+   The Ollama client calls `POST /api/chat` with `stream=false` and
+   `format=json` so classification responses come back as parseable JSON.
+
+   **Using OpenAI instead:**
+
+   ```bash
+   export LLM_API_KEY=sk-...
+   ```
+
+   and set `llm.provider=openai` (default model `gpt-4o-mini`).
 
 3. **Run**:
 
@@ -42,10 +65,8 @@ ticket or trend summary, plus a small RAG-style policy Q&A endpoint.
 
    The API starts on `http://localhost:8080`.
 
-> This project wasn't compiled inside the sandbox that generated it — Maven
-> Central isn't reachable from there. Everything follows standard Spring Boot
-> 3 / Jakarta EE conventions, but run `mvn clean verify` locally as a first
-> step and fix anything your Maven/JDK version flags.
+> Run `mvn clean verify` locally as a first step and fix anything your
+> Maven/JDK version flags.
 
 ## API reference
 
@@ -66,10 +87,9 @@ curl -X POST http://localhost:8080/api/complaints \
   -d '{"description": "Water has been leaking from a broken pipe near the bus stop on Lake Road for two days.", "locationHint": "Lake Road"}'
 ```
 
-Response includes the AI-assigned `category`, `urgency`, `department`, and a
-one-line `aiReasoning` — that reasoning is what gives an officer visibility
-into *why* the AI routed it where it did (see Responsible AI → Transparency
-in the deck).
+The response includes the AI-assigned `category`, `urgency`, `department`, and
+a one-line `aiReasoning`, which gives an officer visibility into *why* the
+complaint was routed where it was.
 
 ### Example: ask a policy question
 
@@ -91,32 +111,31 @@ curl http://localhost:8080/api/insights/trends
 model/        JPA entity + enums (Complaint, ComplaintCategory, Urgency, ComplaintStatus)
 repository/   Spring Data JPA repository
 dto/          Request/response payloads
-llm/          LlmClient interface + OpenAI/Gemini implementations + config
+llm/          LlmClient interface + Ollama/OpenAI implementations + config
 service/      ClassificationService, DepartmentRoutingService, ComplaintService,
               TrendSummaryService, PolicyQaService
 controller/   REST endpoints
 exception/    Centralized error handling
 ```
 
-## Notes and honest limitations
+## Notes and limitations
 
-- **Policy knowledge base is illustrative sample content**, written for this
-  demo — not real official municipal policy. Swap
-  `src/main/resources/policy-knowledge-base.json` for actual local rules
-  before treating any answer as authoritative.
+- **Policy knowledge base is illustrative sample content**, not real official
+  policy. Swap `src/main/resources/policy-knowledge-base.json` for actual
+  local rules before treating any answer as authoritative.
 - **Retrieval is keyword-overlap, not embeddings** — fine for ~10 snippets,
-  won't scale much past that. A real deployment would swap
-  `PolicyQaService.rankByKeywordOverlap` for a vector search.
+  won't scale much past that. Swap `PolicyQaService.rankByKeywordOverlap` for
+  vector search as the policy set grows.
+- **Small local models can return malformed JSON.** If parsing fails, the
+  service falls back to rule-based classification for that request.
 - **No auth** — every endpoint is open. Add Spring Security before exposing
   this beyond localhost.
-- **No pagination** on `GET /api/complaints` — add `Pageable` once complaint
-  volume is more than a demo's worth.
+- **No pagination** on `GET /api/complaints` — add `Pageable` once volume
+  grows.
 
-## Natural next steps
+## Next steps
 
-- Swap keyword retrieval for embeddings (OpenAI/Gemini embeddings + a vector
-  store) as the policy set grows
-- Add authentication and role-based access (citizen vs officer vs planner)
-- Add pagination/filtering on the complaints list
-- Add integration tests against a Testcontainers MySQL instance
-- Wire a small frontend (or Postman collection) for the demo walkthrough
+- Embeddings via Ollama (`/api/embed`) plus a vector store for policy retrieval
+- Authentication and role-based access (citizen vs officer vs planner)
+- Pagination and filtering on the complaints list
+- Integration tests against a Testcontainers MySQL instance
