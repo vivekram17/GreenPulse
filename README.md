@@ -523,19 +523,19 @@ Verify the backend response includes `category`, `urgency`, `department`, and `a
 
 ### Complaint Submission
 
-![Complaint Submission](docs/screenshots/complaint-form.png)
+![Complaint Submission](Screenshots/Complaint submittion.png)
 
 ### Community Dashboard
 
-![Community Dashboard](docs/screenshots/complaints.png)
+![Community Dashboard](Screenshots/ccommunity dashboard.png)
 
 ### AI Insights
 
-![Insights](docs/screenshots/insights.png)
+![Insights](Screenshots/insights.png)
 
 ### Policy Q&A
 
-![Policy Q&A](docs/screenshots/policy-qa.png)
+![Policy Q&A](Screenshots/policy.png)
 
 ---
 
