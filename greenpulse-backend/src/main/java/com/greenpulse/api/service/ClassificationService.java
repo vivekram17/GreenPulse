@@ -28,15 +28,15 @@ public class ClassificationService {
     private final LlmClient llmClient;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @Value("${llm.api-key:}")
-    private String apiKey;
+    @Value("${llm.enabled:false}")
+    private boolean llmEnabled;
 
     public ClassificationService(LlmClient llmClient) {
         this.llmClient = llmClient;
     }
 
     public ClassificationResult classify(String complaintText) {
-        if (apiKey != null && !apiKey.isBlank()) {
+        if (llmEnabled) {
             try {
                 return classifyWithLlm(complaintText);
             } catch (Exception e) {
@@ -59,7 +59,7 @@ public class ClassificationService {
         return new ClassificationResult(category, urgency, location, reasoning);
     }
 
-    /** Keyword-based fallback used when no LLM API key is configured, or the LLM call fails. */
+    /** Keyword-based fallback used when the LLM is disabled, or the LLM call fails. */
     private ClassificationResult ruleBasedClassify(String text) {
         String t = text.toLowerCase();
         ComplaintCategory category = ComplaintCategory.OTHER;
@@ -84,7 +84,7 @@ public class ClassificationService {
         }
 
         return new ClassificationResult(category, urgency, "unspecified",
-                "Classified by keyword-matching fallback (no LLM API key configured).");
+                "Classified by keyword-matching fallback (LLM disabled).");
     }
 
     private boolean containsAny(String text, String... keywords) {

@@ -36,8 +36,8 @@ public class PolicyQaService {
     private final LlmClient llmClient;
     private final List<PolicySnippet> snippets;
 
-    @Value("${llm.api-key:}")
-    private String apiKey;
+    @Value("${llm.enabled:false}")
+    private boolean llmEnabled;
 
     public PolicyQaService(LlmClient llmClient) throws Exception {
         this.llmClient = llmClient;
@@ -48,7 +48,7 @@ public class PolicyQaService {
         List<PolicySnippet> topMatches = rankByKeywordOverlap(question, snippets, 3);
         List<String> sources = topMatches.stream().map(PolicySnippet::title).toList();
 
-        if (apiKey != null && !apiKey.isBlank()) {
+        if (llmEnabled) {
             try {
                 String context = topMatches.stream()
                         .map(s -> "[" + s.title() + "] " + s.text())
@@ -61,7 +61,7 @@ public class PolicyQaService {
             }
         }
         String fallback = topMatches.isEmpty()
-                ? "No matching policy found. Configure an LLM API key for a generated answer."
+                ? "No matching policy found. Enable the LLM (llm.enabled=true) for a generated answer."
                 : topMatches.get(0).text();
         return new PolicyAnswerResponse(fallback, sources);
     }

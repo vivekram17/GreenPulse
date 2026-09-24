@@ -28,8 +28,8 @@ public class TrendSummaryService {
     private final ComplaintRepository repository;
     private final LlmClient llmClient;
 
-    @Value("${llm.api-key:}")
-    private String apiKey;
+    @Value("${llm.enabled:false}")
+    private boolean llmEnabled;
 
     public TrendSummaryService(ComplaintRepository repository, LlmClient llmClient) {
         this.repository = repository;
@@ -49,7 +49,7 @@ public class TrendSummaryService {
                 .collect(Collectors.groupingBy(Complaint::getLocation,
                         LinkedHashMap::new, Collectors.counting()));
 
-        String narrative = (apiKey != null && !apiKey.isBlank())
+        String narrative = llmEnabled
                 ? summarizeWithLlm(byCategory, byLocation, complaints.size())
                 : defaultNarrative(byCategory, complaints.size());
 
@@ -75,6 +75,6 @@ public class TrendSummaryService {
                 .map(Map.Entry::getKey)
                 .orElse("unknown");
         return "Out of " + total + " complaints, " + topCategory
-                + " is the most common category. Configure an LLM API key for a richer, AI-generated summary.";
+                + " is the most common category. Enable the LLM (llm.enabled=true) for a richer, AI-generated summary.";
     }
 }
