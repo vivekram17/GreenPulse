@@ -1,32 +1,101 @@
-# GreenPulse Frontend
+# 🌿 GreenPulse — Frontend
 
-React + Vite frontend for GreenPulse — an AI-powered civic waste-complaint
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](https://react.dev/)
+[![Vite](https://img.shields.io/badge/Vite-Build-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
+
+React + Vite frontend for **GreenPulse** — an AI-powered civic waste-complaint
 platform. Citizens describe an issue (optionally with a location hint and a
-photo URL) and the Spring Boot + AI backend auto-categorizes it, assigns an
+photo URL), and the Spring Boot + AI backend auto-categorizes it, assigns an
 urgency and department, and routes it for resolution.
+
+> This repo contains the **frontend** only. It expects a companion Spring
+> Boot backend running locally or deployed — see [Backend Requirements](#backend-requirements).
+
+---
+
+## Table of Contents
+
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Getting Started](#getting-started)
+- [Environment Configuration](#environment-configuration)
+- [Backend Requirements](#backend-requirements)
+- [API Contract](#api-contract)
+- [CORS Setup](#cors-setup-spring-boot)
+- [Scripts](#scripts)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
 
 ## Features
 
-- Submit a complaint with a description, optional location hint, and
-  optional photo URL
-- AI-generated category, urgency, department, and routing reasoning shown
-  on each complaint card
-- Status tracking through `NEW → ROUTED → IN_PROGRESS → RESOLVED`
-- Community complaints grid with live status updates
-- Trends / insights view summarizing complaint volume by category
-- Policy Q&A assistant for asking questions about waste-management policy
+- 📝 Submit a complaint with a description, optional location hint, and optional photo URL
+- 🤖 AI-generated category, urgency, department, and routing reasoning shown on each complaint card
+- 📊 Status tracking through `NEW → ROUTED → IN_PROGRESS → RESOLVED`
+- 🌍 Community complaints grid with live status updates
+- 📈 Trends / insights view summarizing complaint volume by category
+- 💬 Policy Q&A assistant for asking questions about waste-management policy
 
-## Setup
+## Tech Stack
+
+| Layer      | Technology                          |
+|------------|--------------------------------------|
+| Frontend   | React, Vite                          |
+| Backend    | Spring Boot (separate repo/folder)   |
+| AI         | OpenAI / Gemini APIs (via backend)   |
+| Data       | MySQL (via backend)                  |
+
+## Project Structure
+
+```
+greenpulse-frontend/
+├── src/
+│   ├── components/
+│   │   ├── ComplaintForm.jsx
+│   │   ├── ComplaintCard.jsx
+│   │   └── ...
+│   ├── services/
+│   │   ├── apiConfig.js
+│   │   └── complaintApi.js
+│   └── ...
+├── public/
+├── index.html
+├── package.json
+└── README.md
+```
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (v18+ recommended)
+- npm
+- A running instance of the GreenPulse Spring Boot backend
+
+### Installation
 
 ```bash
+git clone <repo-url>
+cd greenpulse-frontend
 npm install
 npm run dev
 ```
 
-The app runs at `http://localhost:5173` and expects the backend at
-`http://localhost:8080` (configured in `src/services/apiConfig.js`).
+The app runs at **http://localhost:5173** and expects the backend at
+**http://localhost:8080** (configured in `src/services/apiConfig.js`).
 
-## Backend requirements
+## Environment Configuration
+
+If you need to point the frontend at a different backend URL (e.g. staging
+or production), update the base URL in `src/services/apiConfig.js`, or
+adapt it to read from an environment variable such as `VITE_API_BASE_URL`.
+
+## Backend Requirements
 
 Your Spring Boot API should expose at least:
 
@@ -38,12 +107,13 @@ PATCH  /api/complaints/{id}/status
 ```
 
 Plus the endpoints backing the trends/insights and policy Q&A views —
-confirm these against your controller and update `src/services/` accordingly
-if the paths differ.
+confirm these against your controller and update `src/services/`
+accordingly if the paths differ.
 
-## Assumed JSON shapes
+## API Contract
 
-Request (`POST /api/complaints`):
+### Request — `POST /api/complaints`
+
 ```json
 {
   "description": "The bin near Block A has been overflowing for two days.",
@@ -54,7 +124,8 @@ Request (`POST /api/complaints`):
 
 `description` is required; `locationHint` and `photoUrl` are optional.
 
-Response:
+### Response
+
 ```json
 {
   "id": 1,
@@ -70,7 +141,8 @@ Response:
 }
 ```
 
-Status update (`PATCH /api/complaints/{id}/status`):
+### Status Update — `PATCH /api/complaints/{id}/status`
+
 ```json
 {
   "status": "IN_PROGRESS"
@@ -79,12 +151,12 @@ Status update (`PATCH /api/complaints/{id}/status`):
 
 Valid `status` values: `NEW`, `ROUTED`, `IN_PROGRESS`, `RESOLVED`.
 
-**If your DTOs use different field names**, update
-`src/services/complaintApi.js` (see `normalizeComplaint`, which already
-tolerates a few likely field-name variants), `src/components/ComplaintForm.jsx`,
-and `src/components/ComplaintCard.jsx` accordingly.
+> **If your DTOs use different field names**, update
+> `src/services/complaintApi.js` (see `normalizeComplaint`, which already
+> tolerates a few likely field-name variants), `src/components/ComplaintForm.jsx`,
+> and `src/components/ComplaintCard.jsx` accordingly.
 
-## CORS
+## CORS Setup (Spring Boot)
 
 Add this to your Spring Boot project so it accepts requests from the
 Vite dev server:
@@ -117,3 +189,34 @@ public class CorsConfig {
 ```
 
 Restart Spring Boot after adding this.
+
+## Scripts
+
+| Command           | Description                          |
+|--------------------|---------------------------------------|
+| `npm run dev`      | Start the Vite dev server             |
+| `npm run build`    | Build for production                  |
+| `npm run preview`  | Preview the production build locally  |
+
+## Roadmap
+
+- [ ] Add authentication for citizens and department staff
+- [ ] Add pagination/filtering to the complaints grid
+- [ ] Add unit and integration tests
+- [ ] Deploy demo instance
+
+## Contributing
+
+Contributions are welcome!
+
+1. Fork the repo
+2. Create a feature branch (`git checkout -b feature/your-feature`)
+3. Commit your changes (`git commit -m "Add your feature"`)
+4. Push to the branch (`git push origin feature/your-feature`)
+5. Open a Pull Request
+
+Please open an issue first for major changes to discuss what you'd like to change.
+
+## License
+
+This project is licensed under the [MIT License](./LICENSE).
